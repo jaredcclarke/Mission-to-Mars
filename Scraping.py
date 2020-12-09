@@ -17,13 +17,13 @@ def scrape_all():
         "news_paragraph": news_paragraph,
         "featured_image": featured_image(browser),
         "facts": mars_facts(),
+        "hemisphere_img_url": hemisphere_images(browser),
         "last_modified": dt.datetime.now()
     }
 
     # Stop webdriver and return data
     browser.quit()
     return data
-
 
 def mars_news(browser):
 
@@ -84,6 +84,35 @@ def featured_image(browser):
 
     return img_url
 
+def hemisphere_images(browser):
+    browser = Browser("chrome", executable_path="chromedriver", headless=True)
+    url = 'https://astrogeology.usgs.gov/search/results?q=hemisphere+enhanced&k1=target&v1=Mars'
+    browser.visit(url)
+    html = browser.html
+    mars_soup = soup(html, 'html.parser')
+    hemi_img = mars_soup.find_all('div', class_='item')  
+    
+    try:
+        hemisphere_img_urls=[]
+        for x in hemi_img:
+            img_title = x.find('h3').text
+            img_url = x.find('a')['href']
+            # created because could not click thumbnail picture
+            img_click_url = 'https://astrogeology.usgs.gov'
+            browser.visit(img_click_url + img_url)
+            html = browser.html
+            full_image = soup(html, 'html.parser')
+            img_url_hemi = full_image.find('div', class_='downloads')
+            hemisphere_img_url = img_url_hemi.find('a')['href']
+            img_data={'title': img_title, 'img_url': hemisphere_img_url}
+  
+            hemisphere_img_urls.append(img_data)
+    
+    except AttributeError:
+        return None
+    
+    return hemisphere_img_urls
+
 def mars_facts():
     # Add try/except for error handling
     try:
@@ -100,11 +129,12 @@ def mars_facts():
     # Convert dataframe into HTML format, add bootstrap
     return df.to_html(classes="table table-striped")
 
+
+
 if __name__ == "__main__":
 
     # If running as script, print scraped data
     print(scrape_all())
-
 
 
 
